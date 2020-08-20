@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Threading;
+using System.Configuration;
 using System.Collections.Generic;
 using System.IO;
 using System.IO.IsolatedStorage;
@@ -16,7 +17,8 @@ namespace DCTR_CliestConsole
 {
     class GoogleDrive
     {
-        static public string idGoogleFolder = "xxxxxxxxxxxxxxxxxxxxxx--xxxxxxXxX"; // id folder 
+        static public string folderName = "DCTRsystem";
+        static public string idGoogleFolder = ConfigurationSettings.AppSettings["idGoogleFolder"].ToString();
         static public List<string> GFileList = new List<string>();
 
         static GoogleDrive()
@@ -30,20 +32,17 @@ namespace DCTR_CliestConsole
             string[] scopes = new string[] { DriveService.Scope.Drive,
                                  DriveService.Scope.DriveFile};
             // From https://console.developers.google.com
-            // FIXME Load from file
-            var clientId = "xxxxxxxxxxXxx-xxxxxxXXxxxxxxxxxxxxxxxxxxxxxxxX.apps.googleusercontent.com"; //  !!!
-            var clientSecret = "xxxxxxxxxxxxxxxxxxxxxxxx";                                              //  !!!
+
+            string appData = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
+            string credentials = appData + "\\" + folderName + "\\client_secret.json";
+            var stream = new FileStream(credentials, FileMode.Open, FileAccess.Read);
 
             // here is where we Request the user to give us access, or use the Refresh Token that was previously stored in %AppData%
-            var credential = GoogleWebAuthorizationBroker.AuthorizeAsync(new ClientSecrets
-            {
-                ClientId = clientId,
-                ClientSecret = clientSecret
-            },
+            var credential = GoogleWebAuthorizationBroker.AuthorizeAsync(GoogleClientSecrets.Load(stream).Secrets,
             scopes,
             Environment.UserName,
             CancellationToken.None,
-            new FileDataStore("DCTRsystem")).Result;
+            new FileDataStore(folderName)).Result;
 
             credential.GetAccessTokenForRequestAsync();
             return credential;
