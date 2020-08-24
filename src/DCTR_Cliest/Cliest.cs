@@ -7,7 +7,8 @@ using System.Linq;
 using System.ServiceProcess;
 using System.Runtime.InteropServices;
 using System.Timers;
-using System.Text;
+using Newtonsoft.Json;
+using Microsoft.Win32.TaskScheduler;
 
 namespace DCTR_Cliest
 {
@@ -67,6 +68,18 @@ namespace DCTR_Cliest
             timer.Elapsed += new ElapsedEventHandler(this.OnTimer);
             timer.Start();
 
+            try
+            {
+                new Cliest().Run().Wait();
+            }
+            catch (AggregateException ex)
+            {
+                foreach (var e in ex.InnerExceptions)
+                {
+                    Console.WriteLine("ERROR: " + e.Message);
+                }
+            }
+
             // Update the service state to Running.
             serviceStatus.dwCurrentState = ServiceState.SERVICE_RUNNING;
             SetServiceStatus(this.ServiceHandle, ref serviceStatus);
@@ -81,6 +94,74 @@ namespace DCTR_Cliest
         {
             // TODO: Insert monitoring activities here.
             eventLog1.WriteEntry("Monitoring the System", EventLogEntryType.Information, eventId++);
+        }
+
+        private async System.Threading.Tasks.Task Run()
+        {
+            ////////////////////////////////////////////////////
+            // Данные о системе
+            //
+
+            // Получение данных о объеме памяти в системе
+            PerformanceCounter ramCounter = new PerformanceCounter("Memory", "Available MBytes");
+            MemoryStatus status = MemoryStatus.CreateInstance();
+            ulong ram = status.TotalPhys;
+
+            // Формирование набора данных с информацией о системе
+            DataCollection ThisComp = new DataCollection
+            {
+                ComputerName = Environment.MachineName,
+                ProcessorCount = Environment.ProcessorCount,
+                Memory = ram / 1024 / 1024,
+                MemoryFree = (int)ramCounter.NextValue(),
+                UpTime = Environment.TickCount,
+                OSVersion = Environment.OSVersion,
+                Ver = Environment.Version
+            };
+
+            // Сохранение пакета данных о системе
+            DataFileSave SysFile = new DataFileSave
+            {
+                FileName = "system",
+                json = JsonConvert.SerializeObject(ThisComp, Formatting.Indented)
+            };
+            SysFile.Save();
+
+            ////////////////////////////////////////////////////
+            // Данные о заданиях планировщика Windows
+            //
+            TaskService ts = new TaskService();
+
+            List<TaskItem> taskItems = new List<TaskItem>();
+            foreach (Microsoft.Win32.TaskScheduler.Task SelestTask in ts.AllTasks.ToList())
+            {
+                if (SelestTask.Name.StartsWith("NVIDIA"))   // Your task-prefix
+                {
+                    taskItems.Add(new TaskItem()
+                    {
+                        Name = SelestTask.Name,
+                        State = SelestTask.State.ToString(),
+                        LastTaskResult = String.Format("0x{0:X}", SelestTask.LastTaskResult),
+                        LastRunTime = SelestTask.LastRunTime,
+                        NextRunTime = SelestTask.NextRunTime
+                    });
+                }
+            }
+
+
+            // Сохранение пакета данных о задачах
+            DataFileSave TaskFile = new DataFileSave
+            {
+                FileName = "task",
+                json = JsonConvert.SerializeObject(taskItems, Formatting.Indented)
+            };
+            TaskFile.Save();
+
+
+            //**************
+            // Загрузка данных на диска
+            var service = GoogleDrive.CreateService(GoogleDrive.GetUserCredential());
+            List<string> GListId = await GoogleDrive.UploadFilesAsync(service, ListIsoStorageFile.ListFile);
         }
     }
 }
