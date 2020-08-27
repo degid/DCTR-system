@@ -5,6 +5,7 @@ using System.Diagnostics;
 using System.ServiceProcess;
 using System.Runtime.InteropServices;
 using System.Timers;
+using System.Threading;
 
 namespace DCTR_Cliest
 {
@@ -37,6 +38,9 @@ namespace DCTR_Cliest
         static public string TaskPrefix = ConfigurationSettings.AppSettings["TaskPrefix"].ToString();
         static public string strVersion = ConfigurationSettings.AppSettings["Version"].ToString();
         static public EventLog eventLog = new System.Diagnostics.EventLog();
+        static public Mutex mtx = new Mutex();
+        static public System.Timers.Timer timerGetDataSys = new System.Timers.Timer();
+        static public System.Timers.Timer timerSendData = new System.Timers.Timer();
 
         public Cliest()
         {
@@ -62,16 +66,17 @@ namespace DCTR_Cliest
             SetServiceStatus(this.ServiceHandle, ref serviceStatus);
 
             eventLog.WriteEntry("DCTR service started\n\n" + strVersion);
-            // Set up a timer that triggers every minute.
-            Timer timerGetData = new Timer();
-            timerGetData.Interval = IntervalSystem;
-            timerGetData.Elapsed += new ElapsedEventHandler(this.GetDataOnTimer);
-            timerGetData.Start();
 
-            Timer timerSendData = new Timer();
+            // Set up a timers
+            timerGetDataSys.Interval = IntervalSystem;
+            timerGetDataSys.Elapsed += new ElapsedEventHandler(this.GetDataSysOnTimer);
+            timerGetDataSys.Start();
+
             timerSendData.Interval = IntervalSend;
             timerSendData.Elapsed += new ElapsedEventHandler(this.SendDataOnTimer);
             timerSendData.Start();
+
+            FirstPack();
 
             // Update the service state to Running.
             serviceStatus.dwCurrentState = ServiceState.SERVICE_RUNNING;
@@ -81,33 +86,37 @@ namespace DCTR_Cliest
 
         protected override void OnStop()
         {
+            try
+            {
+                timerGetDataSys.Stop();
+                timerSendData.Stop();
+            }
+            catch (Exception ex)
+            {
+                eventLog.WriteEntry(ex.Message, EventLogEntryType.Error, 600);
+            }
+
+            new Cliest().RunSendData().Wait();
+
             eventLog.WriteEntry("DCTR service stopped");
         }
 
-        public void GetDataOnTimer(object sender, ElapsedEventArgs args)
+        private void FirstPack()
         {
-            // TODO: Insert monitoring activities here.
-            SavePackage n = new SavePackage();
-            n.SaveAll();
+            SavePackage pack = new SavePackage();
+            pack.SaveAll();
+            new Cliest().RunSendData().Wait();
+        }
 
-            eventLog.WriteEntry("Save status data", EventLogEntryType.Information, 10);
+        public void GetDataSysOnTimer(object sender, ElapsedEventArgs args)
+        {
+            SavePackage pack = new SavePackage();
+            pack.SaveAll();
         }
 
         public void SendDataOnTimer(object sender, ElapsedEventArgs args)
         {
-            eventLog.WriteEntry("trying to send...", EventLogEntryType.Information, 20);
-            try
-            {
-                new Cliest().RunSendData().Wait();
-            }
-            catch (AggregateException ex)
-            {
-                foreach (var e in ex.InnerExceptions)
-                {
-                    Console.WriteLine("ERROR: " + e.Message);
-                    eventLog.WriteEntry(e.Message, EventLogEntryType.Error, 2000);
-                }
-            }
+            new Cliest().RunSendData().Wait();
         }
 
         private async System.Threading.Tasks.Task RunSendData()
@@ -116,13 +125,21 @@ namespace DCTR_Cliest
             // Загрузка данных на диска
             try
             {
-                var Credential = GoogleDrive.GetUserCredential();
-                var service = GoogleDrive.CreateService(Credential);
-                List<string> GListId = await GoogleDrive.UploadFilesAsync(service, ListIsoStorageFile.ListFile);
+                if (ListIsoStorageFile.ListFile.Count == 0)
+                {
+                    throw new Exception("No files to send");
+                }
+
+                var service = GoogleDrive.CreateService(GoogleDrive.GetUserCredential());
+                List<string> GListId = await GoogleDrive.UploadFilesAsync(service);
+
+                eventLog.WriteEntry("Files saved " + GListId.Count.ToString() + " to Google.Drive\n\n" + String.Join(", ", GListId),
+                    EventLogEntryType.Information, 1);
             }
             catch (Exception ex)
             {
-                eventLog.WriteEntry(ex.Message, EventLogEntryType.Error, 200);
+
+                eventLog.WriteEntry(ex.Message, EventLogEntryType.Error, 800);
             }
         }
     }

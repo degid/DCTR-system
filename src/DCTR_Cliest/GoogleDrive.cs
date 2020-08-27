@@ -43,6 +43,16 @@ namespace DCTR_Cliest
 
             var stream = new FileStream(credentials, FileMode.Open, FileAccess.Read);
 
+            try
+            {
+                var client = new System.Net.WebClient();
+                client.OpenRead("http://google.com/generate_204");
+            }
+            catch
+            {
+                throw new Exception("Internet OFF");
+            }
+
             // here is where we Request the user to give us access, or use the Refresh Token that was previously stored in %AppData%
             var credential = GoogleWebAuthorizationBroker.AuthorizeAsync(GoogleClientSecrets.Load(stream).Secrets,
             scopes,
@@ -88,8 +98,6 @@ namespace DCTR_Cliest
                 {
                     foreach (GoogleFile item in filesFeed.Files)
                     {
-                        //Files.Add(item);
-                        //Console.WriteLine(item.Name);
                         GFileList.Add(item.Name);
                     }
 
@@ -111,51 +119,41 @@ namespace DCTR_Cliest
             catch (Exception ex)
             {
                 // In the event there is an error with the request.
-                Console.WriteLine(ex.Message);
+                throw new Exception(ex.Message);
             }
             return GFileList;
         }
 
-        static public async System.Threading.Tasks.Task<List<string>> UploadFilesAsync(DriveService driveService, List<string> ListLocalFile)
+        static public async System.Threading.Tasks.Task<List<string>> UploadFilesAsync(DriveService driveService)
         {
             List<string> UploadListFileId = new List<string>();
 
             FilesResource.CreateMediaUpload requestFl;
             IsolatedStorageFile machine = IsolatedStorageFile.GetMachineStoreForAssembly();
 
-            foreach (string nameFile in ListLocalFile)
+            while (ListIsoStorageFile.ListFile.Count > 0)
             {
-                //Console.WriteLine(">>" + nameFile);
+                string nameFile = ListIsoStorageFile.Get();
 
                 GoogleFile body = new GoogleFile();
                 body.Name = System.IO.Path.GetFileName(nameFile);
-                body.Description = "Test upload v1";
+                body.Description = "Test upload v2";
                 body.MimeType = "application/json";
                 body.Parents = new List<string>() { GoogleDrive.idGoogleFolder };
 
                 IsolatedStorageFileStream stream = new IsolatedStorageFileStream(nameFile, FileMode.Open, machine);
 
                 requestFl = driveService.Files.Create(body, stream, "application/json");
-
-                //requestFl.Upload();
-                IUploadProgress response = await requestFl.UploadAsync();//.ConfigureAwait(false);
+                IUploadProgress response = await requestFl.UploadAsync();
                 stream.Close();
-
-                var Rfile = requestFl.ResponseBody;
-                string m_fileId = requestFl.ResponseBody?.Id;
 
                 if (response.Exception != null)
                 {
-                    //result.Error = new SerializableAPIError { ErrorMessage = response.Exception.Message };
-                    Console.WriteLine("ErrorMessage: " + response.Exception.Message);
+                    throw new Exception(response.Exception.Message);
                 }
-                else
-                {
-                    //Console.WriteLine("File ID: " + Rfile.Id);
-                    UploadListFileId.Add(Rfile.Id);
-                    //machine.DeleteFile(nameFile);
-                    Console.WriteLine("local: " + nameFile);
-                }
+                var Rfile = requestFl.ResponseBody;
+                UploadListFileId.Add(Rfile.Id);
+                machine.DeleteFile(nameFile);
             }
             return UploadListFileId;
         }

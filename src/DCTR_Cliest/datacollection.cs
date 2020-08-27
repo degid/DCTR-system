@@ -34,21 +34,22 @@ namespace DCTR_Cliest
 
     static class ListIsoStorageFile
     {
-        public static List<string> ListFile { get; set; }
+        //public static List<string> ListFile { get; set; }
+        public static Queue<string> ListFile { get; set; }
 
         static ListIsoStorageFile()
         {
-            ListFile = new List<string>();
+            ListFile = new Queue<string>();
         }
 
         public static void Add(string fileName)
         {
-            ListFile.Add(fileName);
+            ListFile.Enqueue(fileName);
         }
 
-        public static string GetLast()
+        public static string Get()
         {
-            return ListFile.Last();
+            return ListFile.Dequeue();
         }
     }
 
@@ -62,10 +63,11 @@ namespace DCTR_Cliest
             long epochTicks = new DateTime(1970, 1, 1).Ticks;
             long unixTime = ((DateTime.UtcNow.Ticks - epochTicks) / TimeSpan.TicksPerSecond);
 
-            ListIsoStorageFile.Add(FileName + "-" + unixTime.ToString() + ".json");
+            FileName += unixTime.ToString() + ".json";
+            ListIsoStorageFile.Add(FileName);
 
             IsolatedStorageFile machine = IsolatedStorageFile.GetMachineStoreForAssembly();
-            IsolatedStorageFileStream stream = new IsolatedStorageFileStream(ListIsoStorageFile.GetLast(), FileMode.Create, machine);
+            IsolatedStorageFileStream stream = new IsolatedStorageFileStream(FileName, FileMode.Create, machine);
 
             StreamWriter str = new StreamWriter(stream);
             str.WriteLine(json);
