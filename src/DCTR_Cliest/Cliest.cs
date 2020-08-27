@@ -1,14 +1,10 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.ComponentModel;
-using System.Data;
+using System.Configuration;
 using System.Diagnostics;
-using System.Linq;
 using System.ServiceProcess;
 using System.Runtime.InteropServices;
 using System.Timers;
-using Newtonsoft.Json;
-using Microsoft.Win32.TaskScheduler;
 
 namespace DCTR_Cliest
 {
@@ -36,18 +32,22 @@ namespace DCTR_Cliest
     };
     public partial class Cliest : ServiceBase
     {
-        private int eventId = 1;
+        static public int IntervalSystem = Int32.Parse(ConfigurationSettings.AppSettings["IntervalSystem"].ToString());
+        static public int IntervalSend = Int32.Parse(ConfigurationSettings.AppSettings["IntervalSend"].ToString());
+        static public string TaskPrefix = ConfigurationSettings.AppSettings["TaskPrefix"].ToString();
+        static public string strVersion = ConfigurationSettings.AppSettings["Version"].ToString();
+        static public EventLog eventLog = new System.Diagnostics.EventLog();
+
         public Cliest()
         {
             InitializeComponent();
-            eventLog1 = new System.Diagnostics.EventLog();
-            if (!System.Diagnostics.EventLog.SourceExists("MySource"))
+            if (!System.Diagnostics.EventLog.SourceExists("DCTR"))
             {
                 System.Diagnostics.EventLog.CreateEventSource(
-                    "MySource", "MyNewLog");
+                    "DCTR_Client", "DCTR");
             }
-            eventLog1.Source = "MySource";
-            eventLog1.Log = "MyNewLog";
+            eventLog.Source = "DCTR_Client";
+            eventLog.Log = "DCTR";
         }
 
         [DllImport("advapi32.dll", SetLastError = true)]
@@ -61,107 +61,69 @@ namespace DCTR_Cliest
             serviceStatus.dwWaitHint = 100000;
             SetServiceStatus(this.ServiceHandle, ref serviceStatus);
 
-            eventLog1.WriteEntry("In OnStart.");
+            eventLog.WriteEntry("DCTR service started\n\n" + strVersion);
             // Set up a timer that triggers every minute.
-            Timer timer = new Timer();
-            timer.Interval = 60000; // 60 seconds
-            timer.Elapsed += new ElapsedEventHandler(this.OnTimer);
-            timer.Start();
+            Timer timerGetData = new Timer();
+            timerGetData.Interval = IntervalSystem;
+            timerGetData.Elapsed += new ElapsedEventHandler(this.GetDataOnTimer);
+            timerGetData.Start();
 
+            Timer timerSendData = new Timer();
+            timerSendData.Interval = IntervalSend;
+            timerSendData.Elapsed += new ElapsedEventHandler(this.SendDataOnTimer);
+            timerSendData.Start();
+
+            // Update the service state to Running.
+            serviceStatus.dwCurrentState = ServiceState.SERVICE_RUNNING;
+            SetServiceStatus(this.ServiceHandle, ref serviceStatus);
+            PerformanceCounter ramCounter = new PerformanceCounter("Memory", "Available MBytes");
+        }
+
+        protected override void OnStop()
+        {
+            eventLog.WriteEntry("DCTR service stopped");
+        }
+
+        public void GetDataOnTimer(object sender, ElapsedEventArgs args)
+        {
+            // TODO: Insert monitoring activities here.
+            SavePackage n = new SavePackage();
+            n.SaveAll();
+
+            eventLog.WriteEntry("Save status data", EventLogEntryType.Information, 10);
+        }
+
+        public void SendDataOnTimer(object sender, ElapsedEventArgs args)
+        {
+            eventLog.WriteEntry("trying to send...", EventLogEntryType.Information, 20);
             try
             {
-                new Cliest().Run().Wait();
+                new Cliest().RunSendData().Wait();
             }
             catch (AggregateException ex)
             {
                 foreach (var e in ex.InnerExceptions)
                 {
                     Console.WriteLine("ERROR: " + e.Message);
+                    eventLog.WriteEntry(e.Message, EventLogEntryType.Error, 2000);
                 }
             }
-
-            // Update the service state to Running.
-            serviceStatus.dwCurrentState = ServiceState.SERVICE_RUNNING;
-            SetServiceStatus(this.ServiceHandle, ref serviceStatus);
         }
 
-        protected override void OnStop()
+        private async System.Threading.Tasks.Task RunSendData()
         {
-            eventLog1.WriteEntry("In OnStop.");
-        }
-
-        public void OnTimer(object sender, ElapsedEventArgs args)
-        {
-            // TODO: Insert monitoring activities here.
-            eventLog1.WriteEntry("Monitoring the System", EventLogEntryType.Information, eventId++);
-        }
-
-        private async System.Threading.Tasks.Task Run()
-        {
-            ////////////////////////////////////////////////////
-            // Данные о системе
-            //
-
-            // Получение данных о объеме памяти в системе
-            PerformanceCounter ramCounter = new PerformanceCounter("Memory", "Available MBytes");
-            MemoryStatus status = MemoryStatus.CreateInstance();
-            ulong ram = status.TotalPhys;
-
-            // Формирование набора данных с информацией о системе
-            DataCollection ThisComp = new DataCollection
-            {
-                ComputerName = Environment.MachineName,
-                ProcessorCount = Environment.ProcessorCount,
-                Memory = ram / 1024 / 1024,
-                MemoryFree = (int)ramCounter.NextValue(),
-                UpTime = Environment.TickCount,
-                OSVersion = Environment.OSVersion,
-                Ver = Environment.Version
-            };
-
-            // Сохранение пакета данных о системе
-            DataFileSave SysFile = new DataFileSave
-            {
-                FileName = "system",
-                json = JsonConvert.SerializeObject(ThisComp, Formatting.Indented)
-            };
-            SysFile.Save();
-
-            ////////////////////////////////////////////////////
-            // Данные о заданиях планировщика Windows
-            //
-            TaskService ts = new TaskService();
-
-            List<TaskItem> taskItems = new List<TaskItem>();
-            foreach (Microsoft.Win32.TaskScheduler.Task SelestTask in ts.AllTasks.ToList())
-            {
-                if (SelestTask.Name.StartsWith("NVIDIA"))   // Your task-prefix
-                {
-                    taskItems.Add(new TaskItem()
-                    {
-                        Name = SelestTask.Name,
-                        State = SelestTask.State.ToString(),
-                        LastTaskResult = String.Format("0x{0:X}", SelestTask.LastTaskResult),
-                        LastRunTime = SelestTask.LastRunTime,
-                        NextRunTime = SelestTask.NextRunTime
-                    });
-                }
-            }
-
-
-            // Сохранение пакета данных о задачах
-            DataFileSave TaskFile = new DataFileSave
-            {
-                FileName = "task",
-                json = JsonConvert.SerializeObject(taskItems, Formatting.Indented)
-            };
-            TaskFile.Save();
-
-
             //**************
             // Загрузка данных на диска
-            var service = GoogleDrive.CreateService(GoogleDrive.GetUserCredential());
-            List<string> GListId = await GoogleDrive.UploadFilesAsync(service, ListIsoStorageFile.ListFile);
+            try
+            {
+                var Credential = GoogleDrive.GetUserCredential();
+                var service = GoogleDrive.CreateService(Credential);
+                List<string> GListId = await GoogleDrive.UploadFilesAsync(service, ListIsoStorageFile.ListFile);
+            }
+            catch (Exception ex)
+            {
+                eventLog.WriteEntry(ex.Message, EventLogEntryType.Error, 200);
+            }
         }
     }
 }

@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Threading;
 using System.Configuration;
+using System.Diagnostics;
 using System.Collections.Generic;
 using System.IO;
 using System.IO.IsolatedStorage;
@@ -34,6 +35,12 @@ namespace DCTR_Cliest
 
             string appData = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
             string credentials = appData + "\\" + folderName + "\\client_secret.json";
+
+            if (!System.IO.File.Exists(credentials))
+            {
+                throw new Exception("Configuration file not found\n\n" + credentials);
+            }
+
             var stream = new FileStream(credentials, FileMode.Open, FileAccess.Read);
 
             // here is where we Request the user to give us access, or use the Refresh Token that was previously stored in %AppData%

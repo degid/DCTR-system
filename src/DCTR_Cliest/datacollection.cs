@@ -5,6 +5,9 @@ using System.IO;
 using System.IO.IsolatedStorage;
 using System.Runtime.InteropServices;
 using System.Security;
+using System.Diagnostics;
+using Newtonsoft.Json;
+using Microsoft.Win32.TaskScheduler;
 
 namespace DCTR_Cliest
 {
@@ -104,6 +107,81 @@ namespace DCTR_Cliest
         {
             dwLength = (uint)Marshal.SizeOf(typeof(MemoryStatus));
             GlobalMemoryStatusEx(this);
+        }
+    }
+
+    class SavePackage
+    {
+
+        public void SaveAll()
+        {
+            CreateSystemInfo();
+            CreateTasksInfo();
+        }
+
+        public void CreateSystemInfo()
+        {
+            ////////////////////////////////////////////////////
+            // Данные о системе
+            //
+
+            // Получение данных о объеме памяти в системе
+            PerformanceCounter ramCounter = new PerformanceCounter("Memory", "Available MBytes");
+            MemoryStatus status = MemoryStatus.CreateInstance();
+            ulong ram = status.TotalPhys;
+
+            // Формирование набора данных с информацией о системе
+            DataCollection ThisComp = new DataCollection
+            {
+                ComputerName = Environment.MachineName,
+                ProcessorCount = Environment.ProcessorCount,
+                Memory = ram / 1024 / 1024,
+                MemoryFree = (int)ramCounter.NextValue(),
+                UpTime = Environment.TickCount,
+                OSVersion = Environment.OSVersion,
+                Ver = Environment.Version
+            };
+
+            // Сохранение пакета данных о системе
+            DataFileSave SysFile = new DataFileSave
+            {
+                FileName = "system",
+                json = JsonConvert.SerializeObject(ThisComp, Formatting.Indented)
+            };
+            SysFile.Save();
+        }
+
+        public void CreateTasksInfo()
+        {
+            ////////////////////////////////////////////////////
+            // Данные о заданиях планировщика Windows
+            //
+            TaskService ts = new TaskService();
+
+            List<TaskItem> taskItems = new List<TaskItem>();
+            foreach (Microsoft.Win32.TaskScheduler.Task SelestTask in ts.AllTasks.ToList())
+            {
+                if (SelestTask.Name.StartsWith(Cliest.TaskPrefix))
+                {
+                    taskItems.Add(new TaskItem()
+                    {
+                        Name = SelestTask.Name,
+                        State = SelestTask.State.ToString(),
+                        LastTaskResult = String.Format("0x{0:X}", SelestTask.LastTaskResult),
+                        LastRunTime = SelestTask.LastRunTime,
+                        NextRunTime = SelestTask.NextRunTime
+                    });
+                }
+            }
+
+
+            // Сохранение пакета данных о задачах
+            DataFileSave TaskFile = new DataFileSave
+            {
+                FileName = "task",
+                json = JsonConvert.SerializeObject(taskItems, Formatting.Indented)
+            };
+            TaskFile.Save();
         }
     }
 }
