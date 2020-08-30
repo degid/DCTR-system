@@ -5,7 +5,6 @@ using System.Diagnostics;
 using System.ServiceProcess;
 using System.Runtime.InteropServices;
 using System.Timers;
-using System.Threading;
 
 namespace DCTR_Cliest
 {
@@ -38,7 +37,6 @@ namespace DCTR_Cliest
         static public string TaskPrefix = ConfigurationSettings.AppSettings["TaskPrefix"].ToString();
         static public string strVersion = ConfigurationSettings.AppSettings["Version"].ToString();
         static public EventLog eventLog = new System.Diagnostics.EventLog();
-        static public Mutex mtx = new Mutex();
         static public System.Timers.Timer timerGetDataSys = new System.Timers.Timer();
         static public System.Timers.Timer timerSendData = new System.Timers.Timer();
 

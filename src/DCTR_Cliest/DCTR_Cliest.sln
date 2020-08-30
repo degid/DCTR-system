@@ -5,6 +5,8 @@ VisualStudioVersion = 16.0.30413.136
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DCTR_Cliest", "DCTR_Cliest.csproj", "{99E002C3-164C-4F70-B976-8C3BCF791F27}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ServiceManager", "..\ServiceManager\ServiceManager.csproj", "{97963424-46B7-44B5-9A0D-641934029067}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -15,6 +17,10 @@ Global
 		{99E002C3-164C-4F70-B976-8C3BCF791F27}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{99E002C3-164C-4F70-B976-8C3BCF791F27}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{99E002C3-164C-4F70-B976-8C3BCF791F27}.Release|Any CPU.Build.0 = Release|Any CPU
+		{97963424-46B7-44B5-9A0D-641934029067}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{97963424-46B7-44B5-9A0D-641934029067}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{97963424-46B7-44B5-9A0D-641934029067}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{97963424-46B7-44B5-9A0D-641934029067}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

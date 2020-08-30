@@ -21,5 +21,4 @@ You can either download the source and compile or use nuget at http://nuget.org.
 		Google.Apis
 	}
 	TaskScheduler
-	
 

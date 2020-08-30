@@ -34,7 +34,6 @@ namespace DCTR_Cliest
 
     static class ListIsoStorageFile
     {
-        //public static List<string> ListFile { get; set; }
         public static Queue<string> ListFile { get; set; }
 
         static ListIsoStorageFile()
