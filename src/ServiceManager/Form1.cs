@@ -5,6 +5,7 @@ using System.Windows.Forms;
 using System.ServiceProcess;
 using Newtonsoft.Json;
 using System.Collections.Generic;
+using System.Security.Principal;
 
 namespace ServiceManager
 {
@@ -20,6 +21,26 @@ namespace ServiceManager
             InitializeComponent();
 
             serviceStatus(DCTR_serviseStatus());
+
+            // Create the ToolTip and associate with the Form container.
+            ToolTip toolTip1 = new ToolTip();
+
+            // Set up the delays for the ToolTip.
+            toolTip1.AutoPopDelay = 5000;
+            toolTip1.InitialDelay = 1000;
+            toolTip1.ReshowDelay = 500;
+
+
+            WindowsPrincipal pricipal = new WindowsPrincipal(WindowsIdentity.GetCurrent());
+            if (!pricipal.IsInRole(WindowsBuiltInRole.Administrator))
+            {
+                buttonStart.Enabled = false;
+                buttonStop.Enabled = false;
+                this.labelStart.Enabled = false;
+                this.labelStop.Enabled = false;
+
+                toolTip1.SetToolTip(groupBox2, "You need administrator permissions");
+            }
 
             // check google-secret file
             string appData = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);

@@ -28,6 +28,7 @@
         /// </summary>
         private void InitializeComponent()
         {
+            this.components = new System.ComponentModel.Container();
             this.labelStart = new System.Windows.Forms.Label();
             this.panel1 = new System.Windows.Forms.Panel();
             this.label3 = new System.Windows.Forms.Label();
@@ -40,15 +41,18 @@
             this.label2 = new System.Windows.Forms.Label();
             this.button2 = new System.Windows.Forms.Button();
             this.labInfo = new System.Windows.Forms.Label();
+            this.toolTip1 = new System.Windows.Forms.ToolTip(this.components);
+            this.groupBox2 = new System.Windows.Forms.GroupBox();
             this.panel1.SuspendLayout();
             this.groupBox1.SuspendLayout();
+            this.groupBox2.SuspendLayout();
             this.SuspendLayout();
             // 
             // labelStart
             // 
             this.labelStart.AutoSize = true;
             this.labelStart.Font = new System.Drawing.Font("Microsoft Sans Serif", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(204)));
-            this.labelStart.Location = new System.Drawing.Point(179, 26);
+            this.labelStart.Location = new System.Drawing.Point(173, 24);
             this.labelStart.Name = "labelStart";
             this.labelStart.Size = new System.Drawing.Size(32, 15);
             this.labelStart.TabIndex = 0;
@@ -61,7 +65,7 @@
             this.panel1.Controls.Add(this.label3);
             this.panel1.Location = new System.Drawing.Point(12, 12);
             this.panel1.Name = "panel1";
-            this.panel1.Size = new System.Drawing.Size(231, 184);
+            this.panel1.Size = new System.Drawing.Size(231, 208);
             this.panel1.TabIndex = 1;
             this.panel1.Visible = false;
             // 
@@ -69,7 +73,7 @@
             // 
             this.label3.AutoSize = true;
             this.label3.Font = new System.Drawing.Font("Microsoft Sans Serif", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(204)));
-            this.label3.Location = new System.Drawing.Point(35, 80);
+            this.label3.Location = new System.Drawing.Point(35, 95);
             this.label3.Name = "label3";
             this.label3.Size = new System.Drawing.Size(156, 15);
             this.label3.TabIndex = 0;
@@ -79,7 +83,7 @@
             // 
             this.labelStop.AutoSize = true;
             this.labelStop.Font = new System.Drawing.Font("Microsoft Sans Serif", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(204)));
-            this.labelStop.Location = new System.Drawing.Point(179, 69);
+            this.labelStop.Location = new System.Drawing.Point(173, 67);
             this.labelStop.Name = "labelStop";
             this.labelStop.Size = new System.Drawing.Size(32, 15);
             this.labelStop.TabIndex = 3;
@@ -88,7 +92,7 @@
             // buttonStop
             // 
             this.buttonStop.BackgroundImage = global::ServiceManager.Properties.Resources.stop;
-            this.buttonStop.Location = new System.Drawing.Point(131, 61);
+            this.buttonStop.Location = new System.Drawing.Point(125, 59);
             this.buttonStop.Name = "buttonStop";
             this.buttonStop.Size = new System.Drawing.Size(33, 33);
             this.buttonStop.TabIndex = 4;
@@ -98,7 +102,7 @@
             // buttonStart
             // 
             this.buttonStart.BackgroundImage = global::ServiceManager.Properties.Resources.start;
-            this.buttonStart.Location = new System.Drawing.Point(131, 18);
+            this.buttonStart.Location = new System.Drawing.Point(125, 16);
             this.buttonStart.Name = "buttonStart";
             this.buttonStart.Size = new System.Drawing.Size(33, 33);
             this.buttonStart.TabIndex = 2;
@@ -133,7 +137,7 @@
             this.groupBox1.Controls.Add(this.button2);
             this.groupBox1.Controls.Add(this.label1);
             this.groupBox1.Controls.Add(this.button1);
-            this.groupBox1.Location = new System.Drawing.Point(12, 103);
+            this.groupBox1.Location = new System.Drawing.Point(12, 113);
             this.groupBox1.Name = "groupBox1";
             this.groupBox1.Size = new System.Drawing.Size(231, 92);
             this.groupBox1.TabIndex = 11;
@@ -160,10 +164,22 @@
             // 
             // labInfo
             // 
-            this.labInfo.Location = new System.Drawing.Point(12, 204);
+            this.labInfo.Location = new System.Drawing.Point(12, 210);
             this.labInfo.Name = "labInfo";
             this.labInfo.Size = new System.Drawing.Size(231, 19);
             this.labInfo.TabIndex = 12;
+            // 
+            // groupBox2
+            // 
+            this.groupBox2.Controls.Add(this.buttonStart);
+            this.groupBox2.Controls.Add(this.labelStart);
+            this.groupBox2.Controls.Add(this.buttonStop);
+            this.groupBox2.Controls.Add(this.labelStop);
+            this.groupBox2.Location = new System.Drawing.Point(12, 6);
+            this.groupBox2.Name = "groupBox2";
+            this.groupBox2.Size = new System.Drawing.Size(231, 102);
+            this.groupBox2.TabIndex = 13;
+            this.groupBox2.TabStop = false;
             // 
             // Form1
             // 
@@ -171,14 +187,11 @@
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.AutoSizeMode = System.Windows.Forms.AutoSizeMode.GrowAndShrink;
-            this.ClientSize = new System.Drawing.Size(255, 227);
+            this.ClientSize = new System.Drawing.Size(255, 232);
             this.Controls.Add(this.panel1);
             this.Controls.Add(this.labInfo);
             this.Controls.Add(this.groupBox1);
-            this.Controls.Add(this.labelStop);
-            this.Controls.Add(this.buttonStop);
-            this.Controls.Add(this.labelStart);
-            this.Controls.Add(this.buttonStart);
+            this.Controls.Add(this.groupBox2);
             this.MaximizeBox = false;
             this.Name = "Form1";
             this.Text = "DCTR Manager";
@@ -189,8 +202,9 @@
             this.panel1.PerformLayout();
             this.groupBox1.ResumeLayout(false);
             this.groupBox1.PerformLayout();
+            this.groupBox2.ResumeLayout(false);
+            this.groupBox2.PerformLayout();
             this.ResumeLayout(false);
-            this.PerformLayout();
 
         }
 
@@ -208,6 +222,8 @@
         private System.Windows.Forms.Button button2;
         private System.Windows.Forms.Label label3;
         private System.Windows.Forms.Label labInfo;
+        private System.Windows.Forms.ToolTip toolTip1;
+        private System.Windows.Forms.GroupBox groupBox2;
     }
 }
 
