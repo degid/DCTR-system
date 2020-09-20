@@ -2,11 +2,11 @@ package main
 
 import (
 	"fmt"
-	"google"
 	"io/ioutil"
 	"log"
 	"net/http"
 
+	"github.com/degid/DCTR-system/src/DCTR_Server/googleclient"
 	"golang.org/x/oauth2/google"
 	"google.golang.org/api/drive/v3"
 )
@@ -22,7 +22,7 @@ func main() {
 	if err != nil {
 		log.Fatalf("Unable to parse client secret file to config: %v", err)
 	}
-	client := getClient(config)
+	client := googleclient.GetClient(config)
 
 	srv, err := drive.New(client)
 	if err != nil {

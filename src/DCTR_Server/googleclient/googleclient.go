@@ -1,4 +1,4 @@
-package google
+package googleclient
 
 import (
 	"encoding/json"
@@ -11,8 +11,8 @@ import (
 	"golang.org/x/oauth2"
 )
 
-// Retrieve a token, saves the token, then returns the generated client.
-func getClient(config *oauth2.Config) *http.Client {
+// GetClient - retrieve a token, saves the token, then returns the generated client.
+func GetClient(config *oauth2.Config) *http.Client {
 	tokFile := "token.json"
 	tok, err := tokenFromFile(tokFile)
 	if err != nil {
