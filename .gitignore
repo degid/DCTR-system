@@ -1,0 +1,12 @@
+src/DCTR_CliestConsole/bin
+src/DCTR_CliestConsole/obj
+src/DCTR_CliestConsole/packages
+src/DCTR_Cliest/bin
+src/DCTR_Cliest/obj
+src/DCTR_Cliest/packages
+src/ServiceManager/bin
+src/ServiceManager/obj
+src/ServiceManager/packages
+client_secret.json
+token.json
+*.suo
