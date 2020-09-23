@@ -1,13 +1,19 @@
 {{ define "body" }}
-        <H1>Google, files</H1>
-        {{ range $key, $value := . }}
-        <div class="row">
-            <div class=col-xs-2></div>
-            <div class=col-xs-8>
-                {{ $key }}
+            <header class="masthead mb-auto">
+            <div class="inner">
+                <h3 class="masthead-brand">DCTR system</h3>
+                <nav class="nav nav-masthead justify-content-center">
+                <a class="nav-link active" href="#">Home</a>
+                <a class="nav-link" href="#">Features</a>
+                <a class="nav-link" href="#">Contact</a>
+                </nav>
             </div>
-            <div class=col-xs-2></div>
-        </div>
-        {{ end }}
-
+            </header>
+            <main role="main" class="inner cover">
+                <h1 class="cover-heading">Goole Drive</h1>
+                <p class="lead">Token not found</p>
+                <p class="lead">
+                    <a href="#" class="btn btn-lg btn-secondary">Login</a>
+                </p>
+            </main>
 {{ end }}

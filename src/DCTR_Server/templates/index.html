@@ -3,12 +3,15 @@
 <html lang="en">
     <head>
         {{ template "head" }}
+        <!--https://getbootstrap.com/docs/4.5/examples/cover/-->
     </head>
-    <body>
+    <body class="text-center">
+        <div class="cover-container d-flex w-100 h-100 p-3 mx-auto flex-column">
         {{ template "body" . }}
-    <footer>
-        {{ template "footer" }}
-    </footer>
+            <footer class="mastfoot mt-auto">
+            {{ template "footer" }}
+            </footer>
+        </div>
     </body>
 </html>
 {{ end }}

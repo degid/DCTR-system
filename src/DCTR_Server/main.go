@@ -6,6 +6,7 @@ import (
 	"io/ioutil"
 	"log"
 	"net/http"
+	"os"
 
 	"github.com/degid/DCTR-system/src/DCTR_Server/googleclient"
 
@@ -34,11 +35,9 @@ func indexHandler(w http.ResponseWriter, r *http.Request) {
 		fmt.Fprintf(w, err.Error())
 	}
 
-	fmt.Println("WHAT:", gf)
-
 	err = t.ExecuteTemplate(w, "index", gf)
 	if err != nil {
-		fmt.Println("ERRR1:", err)
+		fmt.Println("Error:", err)
 	}
 }
 
@@ -63,6 +62,7 @@ func main() {
 		log.Fatalf("Unable to retrieve Drive client: %v", err)
 	}
 
+	log.Print("Loading are files from google drive...")
 	r, err := srv.Files.List().
 		Q("'1BLNchJo-RZK7aeFiyfqb8FWUgbmpRLjz' in parents").
 		Fields("nextPageToken, files(id, name, modifiedTime)").PageSize(20).
@@ -90,8 +90,16 @@ func main() {
 		}
 		//fmt.Println("Delete", x)
 	}
+	log.Print("Completed.")
 
+	log.Print("Starting the service...")
+	port := os.Getenv("PORT")
+	if port == "" {
+		log.Fatal("Port is not set.")
+	}
+
+	log.Print("The service is ready to listen and serve.")
 	http.Handle("/assets/", http.StripPrefix("/assets/", http.FileServer(http.Dir("./templates/assets/"))))
 	http.HandleFunc("/", indexHandler)
-	http.ListenAndServe(":3000", nil)
+	http.ListenAndServe(":"+port, nil)
 }
