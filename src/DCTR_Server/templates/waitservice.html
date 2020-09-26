@@ -1,0 +1,21 @@
+{{ define "waitservice" }}
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        {{ template "head" }}
+    </head>
+    <body class="text-center">
+        <div class="cover-container d-flex w-100 h-100 p-3 mx-auto flex-column">
+            {{ template "header" }}
+
+            {{ if . }}
+            <H2>Token is expected to be saved...</H2>
+            {{ else }}
+            <H2>Service is starting...</H2>
+            {{ end }}
+
+            {{ template "footer" }}
+        </div>
+    </body>
+</html>
+{{ end }}
