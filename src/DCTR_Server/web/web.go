@@ -7,11 +7,28 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"sync/atomic"
 	"syscall"
 	"time"
 )
 
 var paramToken map[string]string
+
+// healthz is a liveness probe.
+func healthz(w http.ResponseWriter, _ *http.Request) {
+	w.WriteHeader(http.StatusOK)
+}
+
+// readyz is a readiness probe.
+func readyz(isReady *atomic.Value) http.HandlerFunc {
+	return func(w http.ResponseWriter, _ *http.Request) {
+		if isReady == nil || !isReady.Load().(bool) {
+			http.Error(w, http.StatusText(http.StatusServiceUnavailable), http.StatusServiceUnavailable)
+			return
+		}
+		w.WriteHeader(http.StatusOK)
+	}
+}
 
 func indexHandler(w http.ResponseWriter, r *http.Request) {
 	t, err := template.ParseFiles("templates/index.html",
@@ -97,11 +114,22 @@ func chekCode(param *<-chan bool, AuthURL *<-chan string, AuthCode *chan<- strin
 
 // Start - Start web service interface
 func Start(param <-chan bool, AuthURL <-chan string, AuthCode chan<- string, done chan<- struct{}) {
-	log.Print("Starting the service...")
+	isReady := &atomic.Value{}
+	isReady.Store(false)
 	port := os.Getenv("PORT")
-	if port == "" {
-		log.Fatal("Port is not set.")
-	}
+	go func() {
+		log.Printf("Readyz probe is negative by default...")
+		//time.Sleep(10 * time.Second)
+		if port == "" {
+			log.Fatal("Port is not set.")
+			isReady.Store(false)
+		} else {
+			isReady.Store(true)
+			log.Printf("Readyz probe is positive.")
+		}
+	}()
+
+	log.Print("Starting the service...")
 
 	go chekCode(&param, &AuthURL, &AuthCode)
 
@@ -110,12 +138,14 @@ func Start(param <-chan bool, AuthURL <-chan string, AuthCode chan<- string, don
 	http.HandleFunc("/waitservice", waitServiceHandler)
 	http.HandleFunc("/gettoken", getCodeHandler)
 	http.HandleFunc("/savecode", saveCodeHandler)
+	http.HandleFunc("/healthz", healthz)
+	http.HandleFunc("/readyz", readyz(isReady))
 
 	interrupt := make(chan os.Signal, 1)
 	signal.Notify(interrupt, os.Interrupt, syscall.SIGTERM)
 
 	websrv := &http.Server{
-		Addr:    ":" + port,
+		Addr:    "0.0.0.0:" + port,
 		Handler: nil,
 	}
 
