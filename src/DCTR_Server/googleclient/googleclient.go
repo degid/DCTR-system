@@ -31,7 +31,7 @@ func NewFile(id, name, mTime string) *GoogleFile {
 
 // GetClient - retrieve a token, saves the token, then returns the generated client.
 func GetClient(paramOk chan<- bool, AuthURL chan<- string, AuthCode <-chan string, client chan<- *http.Client) {
-	b, err := ioutil.ReadFile("client_secret.json")
+	b, err := ioutil.ReadFile("credsStore/client_secret.json")
 	if err != nil {
 		log.Fatalf("Unable to read client secret file: %v", err)
 	}
@@ -42,7 +42,7 @@ func GetClient(paramOk chan<- bool, AuthURL chan<- string, AuthCode <-chan strin
 		log.Fatalf("Unable to parse client secret file to config: %v", err)
 	}
 
-	tokFile := "token.json"
+	tokFile := "credsStore/token.json"
 	tok, err := tokenFromFile(tokFile)
 	if err != nil {
 		paramOk <- false

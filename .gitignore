@@ -9,6 +9,7 @@ src/ServiceManager/obj
 src/ServiceManager/packages
 client_secret.json
 token.json
+ca-certificates.crt
 dctrserver
 main
 *.suo
