@@ -36,6 +36,7 @@ namespace DCTR_Cliest
         static public int IntervalSend = Int32.Parse(ConfigurationSettings.AppSettings["IntervalSend"].ToString());
         static public string TaskPrefix = ConfigurationSettings.AppSettings["TaskPrefix"].ToString();
         static public string strVersion = ConfigurationSettings.AppSettings["Version"].ToString();
+        static public string appData = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
         static public EventLog eventLog = new System.Diagnostics.EventLog();
         static public System.Timers.Timer timerGetDataSys = new System.Timers.Timer();
         static public System.Timers.Timer timerSendData = new System.Timers.Timer();
@@ -80,6 +81,8 @@ namespace DCTR_Cliest
             serviceStatus.dwCurrentState = ServiceState.SERVICE_RUNNING;
             SetServiceStatus(this.ServiceHandle, ref serviceStatus);
             PerformanceCounter ramCounter = new PerformanceCounter("Memory", "Available MBytes");
+            Logger.InitLogger();
+            Logger.Log.Info("Start");
         }
 
         protected override void OnStop()
@@ -131,7 +134,7 @@ namespace DCTR_Cliest
                 var service = GoogleDrive.CreateService(GoogleDrive.GetUserCredential());
                 List<string> GListId = await GoogleDrive.UploadFilesAsync(service);
 
-                eventLog.WriteEntry("Files saved " + GListId.Count.ToString() + " to Google.Drive\n\n" + String.Join(", ", GListId),
+                eventLog.WriteEntry($"Files saved {GListId.Count-1} to Google.Drive\n\n" + String.Join(", ", GListId),
                     EventLogEntryType.Information, 1);
             }
             catch (Exception ex)

@@ -1,8 +1,8 @@
 ﻿using System;
 using System.Threading;
 using System.Configuration;
-using System.Diagnostics;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.IO.IsolatedStorage;
 using Google.Apis.Auth.OAuth2;
@@ -12,6 +12,7 @@ using Google.Apis.Util.Store;
 using Google.Apis.Upload;
 using Google.Apis.Services;
 using GoogleFile = Google.Apis.Drive.v3.Data.File;
+using Ionic.Zip;
 
 namespace DCTR_Cliest
 {
@@ -19,6 +20,7 @@ namespace DCTR_Cliest
     {
         static public string folderName = "DCTRsystem";
         static public string idGoogleFolder = ConfigurationSettings.AppSettings["idGoogleFolder"].ToString();
+        static public string localFolder = Cliest.appData + "\\" + folderName;
         static public List<string> GFileList = new List<string>();
 
         static GoogleDrive()
@@ -33,8 +35,7 @@ namespace DCTR_Cliest
                                  DriveService.Scope.DriveFile};
             // From https://console.developers.google.com
 
-            string appData = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
-            string credentials = appData + "\\" + folderName + "\\client_secret.json";
+            string credentials = localFolder + "\\client_secret.json";
 
             if (!System.IO.File.Exists(credentials))
             {
@@ -124,38 +125,142 @@ namespace DCTR_Cliest
             return GFileList;
         }
 
+        static private async System.Threading.Tasks.Task<string> SendFile(DriveService driveService, IsolatedStorageFile storage, string fileName)
+        {
+            FilesResource.CreateMediaUpload requestFl;
+
+            GoogleFile body = new GoogleFile();
+            body.Name = System.IO.Path.GetFileName(fileName);
+            body.Description = "Test upload v4";
+            body.MimeType = "application/zip";
+            body.Parents = new List<string>() { GoogleDrive.idGoogleFolder };
+
+            // Logger.Log.Info("Send file: " + nameFile);
+            IsolatedStorageFileStream stream2 = new IsolatedStorageFileStream(fileName, FileMode.Open, storage);
+
+            requestFl = driveService.Files.Create(body, stream2, "application/zip");
+            IUploadProgress response2 = await requestFl.UploadAsync();
+            stream2.Close();
+
+            if (response2.Exception != null)
+            {
+                Cliest.eventLog.WriteEntry(response2.Exception.Message, EventLogEntryType.Error, 785);
+                ListIsoStorageFile.Add(fileName);
+                throw new Exception(response2.Exception.Message + " (response.Exception), file: " + fileName);
+            }
+            // Logger.Log.Info("Send file " + nameFile + " complited");
+            var Rfile = requestFl.ResponseBody;
+            storage.DeleteFile(fileName);
+            return Rfile.Id;
+        }
+
         static public async System.Threading.Tasks.Task<List<string>> UploadFilesAsync(DriveService driveService)
         {
             List<string> UploadListFileId = new List<string>();
 
-            FilesResource.CreateMediaUpload requestFl;
             IsolatedStorageFile machine = IsolatedStorageFile.GetMachineStoreForAssembly();
 
-            while (ListIsoStorageFile.ListFile.Count > 0)
+            long epochTicks = new DateTime(1970, 1, 1).Ticks;
+            long unixTime = ((DateTime.UtcNow.Ticks - epochTicks) / TimeSpan.TicksPerSecond);
+
+            string ZipFileName = $"package_{unixTime}.zip";
+            string idGoogleFile = "";
+
+            using (IsolatedStorageFileStream fsZip = new IsolatedStorageFileStream(ZipFileName, FileMode.Create, machine))
             {
-                string nameFile = ListIsoStorageFile.Get();
-
-                GoogleFile body = new GoogleFile();
-                body.Name = System.IO.Path.GetFileName(nameFile);
-                body.Description = "Test upload v2";
-                body.MimeType = "application/json";
-                body.Parents = new List<string>() { GoogleDrive.idGoogleFolder };
-
-                IsolatedStorageFileStream stream = new IsolatedStorageFileStream(nameFile, FileMode.Open, machine);
-
-                requestFl = driveService.Files.Create(body, stream, "application/json");
-                IUploadProgress response = await requestFl.UploadAsync();
-                stream.Close();
-
-                if (response.Exception != null)
+                using (ZipOutputStream s = new ZipOutputStream(fsZip))
                 {
-                    throw new Exception(response.Exception.Message);
+                    while (ListIsoStorageFile.ListFile.Count > 0)
+                    {
+                        string nameFile = ListIsoStorageFile.Get();
+
+                        if (nameFile.EndsWith(".zip"))
+                        {
+                            idGoogleFile = await SendFile(driveService, machine, nameFile);
+                            UploadListFileId.Add(idGoogleFile);
+                            continue;
+                        }
+
+                        try
+                        {
+                            IsolatedStorageFileStream stream = new IsolatedStorageFileStream(nameFile, FileMode.Open, machine);
+
+                            s.PutNextEntry(nameFile);
+                            byte[] buffer = ReadToEnd(stream);
+                            s.Write(buffer, 0, buffer.Length);
+                            stream.Close();
+                            UploadListFileId.Add(nameFile);
+                            machine.DeleteFile(nameFile);
+
+                        }
+                        catch (Exception ex)
+                        {
+                            Cliest.eventLog.WriteEntry($"{ex.Message} ({nameFile}), count: {ListIsoStorageFile.ListFile.Count}", EventLogEntryType.Error, 781);
+                            ListIsoStorageFile.Add(nameFile);
+                        }
+                    }
+
                 }
-                var Rfile = requestFl.ResponseBody;
-                UploadListFileId.Add(Rfile.Id);
-                machine.DeleteFile(nameFile);
             }
+
+            idGoogleFile = await SendFile(driveService, machine, ZipFileName);
+
+            UploadListFileId.Add(idGoogleFile);
+
             return UploadListFileId;
         }
+
+        public static byte[] ReadToEnd(System.IO.Stream stream)
+        {
+            long originalPosition = 0;
+
+            if (stream.CanSeek)
+            {
+                originalPosition = stream.Position;
+                stream.Position = 0;
+            }
+
+            try
+            {
+                byte[] readBuffer = new byte[4096];
+
+                int totalBytesRead = 0;
+                int bytesRead;
+
+                while ((bytesRead = stream.Read(readBuffer, totalBytesRead, readBuffer.Length - totalBytesRead)) > 0)
+                {
+                    totalBytesRead += bytesRead;
+
+                    if (totalBytesRead == readBuffer.Length)
+                    {
+                        int nextByte = stream.ReadByte();
+                        if (nextByte != -1)
+                        {
+                            byte[] temp = new byte[readBuffer.Length * 2];
+                            Buffer.BlockCopy(readBuffer, 0, temp, 0, readBuffer.Length);
+                            Buffer.SetByte(temp, totalBytesRead, (byte)nextByte);
+                            readBuffer = temp;
+                            totalBytesRead++;
+                        }
+                    }
+                }
+
+                byte[] buffer = readBuffer;
+                if (readBuffer.Length != totalBytesRead)
+                {
+                    buffer = new byte[totalBytesRead];
+                    Buffer.BlockCopy(readBuffer, 0, buffer, 0, totalBytesRead);
+                }
+                return buffer;
+            }
+            finally
+            {
+                if (stream.CanSeek)
+                {
+                    stream.Position = originalPosition;
+                }
+            }
+        }
+
     }
 }

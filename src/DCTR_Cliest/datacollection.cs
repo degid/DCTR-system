@@ -62,8 +62,7 @@ namespace DCTR_Cliest
             long epochTicks = new DateTime(1970, 1, 1).Ticks;
             long unixTime = ((DateTime.UtcNow.Ticks - epochTicks) / TimeSpan.TicksPerSecond);
 
-            FileName += unixTime.ToString() + ".json";
-            ListIsoStorageFile.Add(FileName);
+            FileName += $"_{unixTime}.json";
 
             IsolatedStorageFile machine = IsolatedStorageFile.GetMachineStoreForAssembly();
             IsolatedStorageFileStream stream = new IsolatedStorageFileStream(FileName, FileMode.Create, machine);
@@ -71,6 +70,7 @@ namespace DCTR_Cliest
             StreamWriter str = new StreamWriter(stream);
             str.WriteLine(json);
             str.Close();
+            ListIsoStorageFile.Add(FileName);
         }
     }
 
