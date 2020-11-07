@@ -11,7 +11,20 @@ using Microsoft.Win32.TaskScheduler;
 
 namespace DCTR_Cliest
 {
-    struct DataCollection
+    struct disk
+    {
+        public string Name { get; set; }
+        public string DriveFormat { get; set; }
+        public DriveType DiskType { get; set; }
+        public long AvailableFreeSpace { get; set; }
+        public bool IsReady { get; set; }
+        public DirectoryInfo RootDirectory { get; set; }
+        public long TotalFreeSpace { get; set; }
+        public long TotalSize { get; set; }
+        public string VolumeLabel { get; set; }
+    }
+
+    struct SysInfo
     {
         public string ComputerName { get; set; }
         public int ProcessorCount { get; set; }
@@ -20,7 +33,7 @@ namespace DCTR_Cliest
         public int UpTime { get; set; }
         public OperatingSystem OSVersion { get; set; }
         public Version Ver { get; set; }
-        public Array TaskList { get; set; }
+        public List<disk> drives { get; set; }
     }
 
     struct TaskItem
@@ -30,6 +43,22 @@ namespace DCTR_Cliest
         public string LastTaskResult { get; set; }
         public DateTime LastRunTime { get; set; }
         public DateTime NextRunTime { get; set; }
+    }
+
+    struct SysDataCollection
+    {
+        public string Company { get; set; }
+        public string CompanyPrefix { get; set; }
+
+        public SysInfo SystemInfo { get; set; }
+    }
+
+    struct TaskDataCollection
+    {
+        public string Company { get; set; }
+        public string CompanyPrefix { get; set; }
+
+        public List<TaskItem> TaskItems { get; set; }
     }
 
     static class ListIsoStorageFile
@@ -131,8 +160,25 @@ namespace DCTR_Cliest
             MemoryStatus status = MemoryStatus.CreateInstance();
             ulong ram = status.TotalPhys;
 
-            // Формирование набора данных с информацией о системе
-            DataCollection ThisComp = new DataCollection
+            List<disk> drives = new List<disk>();
+            foreach (var drive in DriveInfo.GetDrives())
+            {
+                if (drive.DriveType == DriveType.Fixed  || drive.DriveType == DriveType.Removable)
+                drives.Add(new disk()
+                {
+                    Name = drive.Name,
+                    DriveFormat = drive.DriveFormat,
+                    DiskType = drive.DriveType,
+                    AvailableFreeSpace = drive.AvailableFreeSpace,
+                    IsReady = drive.IsReady,
+                    RootDirectory = drive.RootDirectory,
+                    TotalFreeSpace = drive.TotalFreeSpace,
+                    TotalSize = drive.TotalSize,
+                    VolumeLabel = drive.VolumeLabel
+                });
+            }
+
+            SysInfo sysInf = new SysInfo
             {
                 ComputerName = Environment.MachineName,
                 ProcessorCount = Environment.ProcessorCount,
@@ -140,7 +186,16 @@ namespace DCTR_Cliest
                 MemoryFree = (int)ramCounter.NextValue(),
                 UpTime = Environment.TickCount,
                 OSVersion = Environment.OSVersion,
-                Ver = Environment.Version
+                Ver = Environment.Version,
+                drives = drives
+            };
+
+            // Формирование набора данных с информацией о системе
+            SysDataCollection ThisComp = new SysDataCollection
+            {
+                Company = Cliest.Company,
+                CompanyPrefix = Cliest.CompanyPrefix,
+                SystemInfo = sysInf
             };
 
             // Сохранение пакета данных о системе
@@ -175,12 +230,18 @@ namespace DCTR_Cliest
                 }
             }
 
+            TaskDataCollection ThisComp = new TaskDataCollection
+            {
+                Company = Cliest.Company,
+                CompanyPrefix = Cliest.CompanyPrefix,
+                TaskItems = taskItems
+            };
 
             // Сохранение пакета данных о задачах
             DataFileSave TaskFile = new DataFileSave
             {
                 FileName = "task",
-                json = JsonConvert.SerializeObject(taskItems, Formatting.Indented)
+                json = JsonConvert.SerializeObject(ThisComp, Formatting.Indented)
             };
             TaskFile.Save();
         }

@@ -34,6 +34,8 @@ namespace DCTR_Cliest
     {
         static public int IntervalSystem = Int32.Parse(ConfigurationSettings.AppSettings["IntervalSystem"].ToString());
         static public int IntervalSend = Int32.Parse(ConfigurationSettings.AppSettings["IntervalSend"].ToString());
+        static public string Company = ConfigurationSettings.AppSettings["Company"].ToString();
+        static public string CompanyPrefix = ConfigurationSettings.AppSettings["CompanyPrefix"].ToString();
         static public string TaskPrefix = ConfigurationSettings.AppSettings["TaskPrefix"].ToString();
         static public string strVersion = ConfigurationSettings.AppSettings["Version"].ToString();
         static public string appData = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
@@ -139,8 +141,14 @@ namespace DCTR_Cliest
             }
             catch (Exception ex)
             {
-
-                eventLog.WriteEntry(ex.Message, EventLogEntryType.Error, 800);
+                if (ex.Message.EndsWith("baseUri"))
+                {
+                    eventLog.WriteEntry($"{ex.Message}\n\nFailed to send package. The package will be sent on next shipment.", EventLogEntryType.Warning, 801);
+                }
+                else
+                {
+                    eventLog.WriteEntry(ex.Message, EventLogEntryType.Error, 800);
+                }
             }
         }
     }

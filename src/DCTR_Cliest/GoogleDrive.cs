@@ -139,14 +139,14 @@ namespace DCTR_Cliest
             IsolatedStorageFileStream stream2 = new IsolatedStorageFileStream(fileName, FileMode.Open, storage);
 
             requestFl = driveService.Files.Create(body, stream2, "application/zip");
-            IUploadProgress response2 = await requestFl.UploadAsync();
+            IUploadProgress response = await requestFl.UploadAsync();
             stream2.Close();
 
-            if (response2.Exception != null)
+            if (response.Exception != null)
             {
-                Cliest.eventLog.WriteEntry(response2.Exception.Message, EventLogEntryType.Error, 785);
+                Cliest.eventLog.WriteEntry($"{response.Exception.Message}, file: {fileName}" , EventLogEntryType.Warning, 785);
                 ListIsoStorageFile.Add(fileName);
-                throw new Exception(response2.Exception.Message + " (response.Exception), file: " + fileName);
+                throw new Exception(response.Exception.Message);
             }
             // Logger.Log.Info("Send file " + nameFile + " complited");
             var Rfile = requestFl.ResponseBody;
@@ -178,6 +178,7 @@ namespace DCTR_Cliest
                         {
                             idGoogleFile = await SendFile(driveService, machine, nameFile);
                             UploadListFileId.Add(idGoogleFile);
+                            Cliest.eventLog.WriteEntry($"Resend {nameFile} ({idGoogleFile})", EventLogEntryType.Warning, 786);
                             continue;
                         }
 
