@@ -6,6 +6,7 @@ using System.IO.IsolatedStorage;
 using System.Runtime.InteropServices;
 using System.Security;
 using System.Diagnostics;
+using System.Management;
 using Newtonsoft.Json;
 using Microsoft.Win32.TaskScheduler;
 
@@ -18,21 +19,32 @@ namespace DCTR_Cliest
         public DriveType DiskType { get; set; }
         public long AvailableFreeSpace { get; set; }
         public bool IsReady { get; set; }
-        public DirectoryInfo RootDirectory { get; set; }
         public long TotalFreeSpace { get; set; }
         public long TotalSize { get; set; }
         public string VolumeLabel { get; set; }
     }
 
+    struct ProcessorInfo
+    {
+        public string Name { get; set; }
+        public string Frequency_PerfTime { get; set; }
+        // public string Manufacturer { get; set; }
+        // public string CurrentClockSpeed { get; set; }
+        // public string Version { get; set; }
+        public int ProcessorCount { get; set; }
+    }
+
     struct SysInfo
     {
         public string ComputerName { get; set; }
-        public int ProcessorCount { get; set; }
         public ulong Memory { get; set; }
         public int MemoryFree { get; set; }
         public int UpTime { get; set; }
-        public OperatingSystem OSVersion { get; set; }
-        public Version Ver { get; set; }
+        public ProcessorInfo Processor { get; set; }
+        public Version OSVersion { get; set; }
+        public PlatformID Platform { get; set; }
+        public string ServicePack { get; set; }
+        public string VerString { get; set; }
         public List<disk> drives { get; set; }
     }
 
@@ -140,6 +152,28 @@ namespace DCTR_Cliest
         }
     }
 
+    public class ProcessorInf
+    {
+        public static Dictionary<string, string> GetInfo()
+        {
+            Dictionary<string, string> Proc = new Dictionary<string, string>(5);
+
+            using (ManagementObjectSearcher win32Proc = new ManagementObjectSearcher("select * from Win32_Processor"))
+            {
+                foreach (ManagementObject obj in win32Proc.Get())
+                {
+                    // Proc.Add("CurrentClockSpeed", obj["CurrentClockSpeed"].ToString());
+                    Proc.Add("Name", obj["Name"].ToString());
+                    //Proc.Add("Name", obj["Frequency_PerfTime"].ToString());
+                    // Proc.Add("Manufacturer", obj["Manufacturer"].ToString());
+                    // Proc.Add("Version", obj["Version"].ToString());
+                }
+            }
+            return Proc;
+        }
+    }
+
+
     class SavePackage
     {
 
@@ -171,22 +205,35 @@ namespace DCTR_Cliest
                     DiskType = drive.DriveType,
                     AvailableFreeSpace = drive.AvailableFreeSpace,
                     IsReady = drive.IsReady,
-                    RootDirectory = drive.RootDirectory,
                     TotalFreeSpace = drive.TotalFreeSpace,
                     TotalSize = drive.TotalSize,
                     VolumeLabel = drive.VolumeLabel
                 });
             }
+            OperatingSystem os = Environment.OSVersion;
+
+            Dictionary<string, string> proc = ProcessorInf.GetInfo();
+
+            ProcessorInfo procInfo = new ProcessorInfo
+            {
+                Name = proc["Name"],
+                // Manufacturer = proc["Manufacturer"],
+                // CurrentClockSpeed = proc["CurrentClockSpeed"],
+                // Version = proc["Version"],
+                ProcessorCount = Environment.ProcessorCount
+            };
 
             SysInfo sysInf = new SysInfo
             {
                 ComputerName = Environment.MachineName,
-                ProcessorCount = Environment.ProcessorCount,
+                Processor = procInfo,
                 Memory = ram / 1024 / 1024,
                 MemoryFree = (int)ramCounter.NextValue(),
                 UpTime = Environment.TickCount,
-                OSVersion = Environment.OSVersion,
-                Ver = Environment.Version,
+                OSVersion = os.Version,
+                Platform = os.Platform,
+                ServicePack = os.ServicePack,
+                VerString = os.VersionString,
                 drives = drives
             };
 

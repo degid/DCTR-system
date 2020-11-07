@@ -177,7 +177,7 @@ namespace DCTR_Cliest
                         if (nameFile.EndsWith(".zip"))
                         {
                             idGoogleFile = await SendFile(driveService, machine, nameFile);
-                            UploadListFileId.Add(idGoogleFile);
+                            UploadListFileId.Add($"{nameFile} ({idGoogleFile})");
                             Cliest.eventLog.WriteEntry($"Resend {nameFile} ({idGoogleFile})", EventLogEntryType.Warning, 786);
                             continue;
                         }
