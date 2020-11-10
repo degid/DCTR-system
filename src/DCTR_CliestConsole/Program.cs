@@ -3,8 +3,14 @@ using System.Diagnostics;
 using Newtonsoft.Json;
 using System.Collections.Generic;
 using System.Linq;
+using System.Management;
 using Microsoft.Win32.TaskScheduler;
 
+
+using System.IO;
+using System.IO.IsolatedStorage;
+using System.Runtime.InteropServices;
+using System.Security;
 
 namespace DCTR_CliestConsole
 {
@@ -17,7 +23,8 @@ namespace DCTR_CliestConsole
 
             try
             {
-                new Program().Run().Wait();
+                //new Program().Run().Wait();
+                new Program().Run2();
             }
             catch (AggregateException ex)
             {
@@ -28,6 +35,34 @@ namespace DCTR_CliestConsole
             }
             Console.WriteLine("Press any key to continue...");
             Console.ReadKey();
+        }
+
+        private void Run2()
+        {
+            ObjectQuery PerfRawDataQuery = new System.Management.ObjectQuery(
+                 "SELECT Name, InterruptsPersec, PercentIdleTime, PercentPrivilegedTime, PercentProcessorTime, PercentUserTime " +
+                 "FROM Win32_PerfFormattedData_PerfOS_Processor"
+                 );
+            ObjectQuery win32ProcQuery = new System.Management.ObjectQuery("SELECT Name from Win32_Processor");
+
+            using (ManagementObjectSearcher win32Proc = new ManagementObjectSearcher(win32ProcQuery),
+                            PerfRawData = new ManagementObjectSearcher(PerfRawDataQuery))
+            {
+                var ob = win32Proc.Get().OfType<ManagementObject>().First();
+                Console.WriteLine($"Name!!: {ob["Name"]}");
+
+                foreach (ManagementObject obj in PerfRawData.Get())
+                {
+                    Console.WriteLine("-----------------------------------");
+                    Console.WriteLine($"Name: {obj["Name"]}");
+                    Console.WriteLine($"Прерываний/сек:  {obj["InterruptsPersec"]}");
+                    Console.WriteLine($"Процент времени бездействия: {obj["PercentIdleTime"]}");
+                    Console.WriteLine($"% работы в привилегированном режиме: {obj["PercentPrivilegedTime"]}");
+                    Console.WriteLine($"% загруженности процессора: {obj["PercentProcessorTime"]}");
+                    Console.WriteLine($"% работы в пользовательском режиме: {obj["PercentUserTime"]}");
+                }
+            }
+
         }
 
         private async System.Threading.Tasks.Task Run()

@@ -24,14 +24,21 @@ namespace DCTR_Cliest
         public string VolumeLabel { get; set; }
     }
 
+    struct PerfOS
+    {
+        public string Name { get; set; }
+        public string InterruptsPersec { get; set; }
+        public string PercentIdleTime { get; set; }
+        public string PercentPrivilegedTime { get; set; }
+        public string PercentProcessorTime { get; set; }
+        public string PercentUserTime { get; set; }
+    }
+
     struct ProcessorInfo
     {
         public string Name { get; set; }
-        public string Frequency_PerfTime { get; set; }
-        // public string Manufacturer { get; set; }
-        // public string CurrentClockSpeed { get; set; }
-        // public string Version { get; set; }
         public int ProcessorCount { get; set; }
+        public List<PerfOS> PerfOS { get; set; }
     }
 
     struct SysInfo
@@ -154,20 +161,44 @@ namespace DCTR_Cliest
 
     public class ProcessorInf
     {
-        public static Dictionary<string, string> GetInfo()
+        // kernel load percentage
+        public static List<Dictionary<string, string>> GetPerfOS()
         {
-            Dictionary<string, string> Proc = new Dictionary<string, string>(5);
+            List<Dictionary<string, string>> perfOS = new List<Dictionary<string, string>>();
 
-            using (ManagementObjectSearcher win32Proc = new ManagementObjectSearcher("select * from Win32_Processor"))
+            ObjectQuery PerfRawDataQuery = new System.Management.ObjectQuery(
+                 "SELECT Name, InterruptsPersec, PercentIdleTime, PercentPrivilegedTime, PercentProcessorTime, PercentUserTime " +
+                 "FROM Win32_PerfFormattedData_PerfOS_Processor"
+                 );
+            using (ManagementObjectSearcher PerfRawData = new ManagementObjectSearcher(PerfRawDataQuery))
             {
-                foreach (ManagementObject obj in win32Proc.Get())
+                foreach (ManagementObject obj in PerfRawData.Get())
                 {
-                    // Proc.Add("CurrentClockSpeed", obj["CurrentClockSpeed"].ToString());
-                    Proc.Add("Name", obj["Name"].ToString());
-                    //Proc.Add("Name", obj["Frequency_PerfTime"].ToString());
-                    // Proc.Add("Manufacturer", obj["Manufacturer"].ToString());
-                    // Proc.Add("Version", obj["Version"].ToString());
+                    perfOS.Add(
+                        new Dictionary<string, string>
+                        {
+                            ["Name"] = obj["Name"].ToString(),
+                            ["InterruptsPersec"] = obj["InterruptsPersec"].ToString(),
+                            ["PercentIdleTime"] = obj["PercentIdleTime"].ToString(),
+                            ["PercentPrivilegedTime"] = obj["PercentPrivilegedTime"].ToString(),
+                            ["PercentProcessorTime"] = obj["PercentProcessorTime"].ToString(),
+                            ["PercentUserTime"] = obj["PercentUserTime"].ToString(),
+                        });
                 }
+            };
+
+            return perfOS;
+        }
+
+        // Name processor
+        public static string GetName()
+        {
+            string Proc = null;
+            ObjectQuery win32ProcQuery = new System.Management.ObjectQuery("SELECT Name from Win32_Processor");
+            using (ManagementObjectSearcher win32Proc = new ManagementObjectSearcher(win32ProcQuery))
+            {
+                var obj = win32Proc.Get().OfType<ManagementObject>().First();
+                Proc = obj["Name"].ToString();
             }
             return Proc;
         }
@@ -212,15 +243,27 @@ namespace DCTR_Cliest
             }
             OperatingSystem os = Environment.OSVersion;
 
-            Dictionary<string, string> proc = ProcessorInf.GetInfo();
+            List<Dictionary<string, string>> dicPerfOS = ProcessorInf.GetPerfOS();
+            List<PerfOS> perfOS = new List<PerfOS>();
+            foreach (var dic in dicPerfOS)
+            {
+                perfOS.Add( new PerfOS
+                {
+                    Name = dic["Name"],
+                    InterruptsPersec = dic["InterruptsPersec"],
+                    PercentIdleTime = dic["PercentIdleTime"],
+                    PercentPrivilegedTime = dic["PercentPrivilegedTime"],
+                    PercentProcessorTime = dic["PercentProcessorTime"],
+                    PercentUserTime = dic["PercentUserTime"]
+                });
+            }
 
             ProcessorInfo procInfo = new ProcessorInfo
             {
-                Name = proc["Name"],
-                // Manufacturer = proc["Manufacturer"],
-                // CurrentClockSpeed = proc["CurrentClockSpeed"],
-                // Version = proc["Version"],
-                ProcessorCount = Environment.ProcessorCount
+                Name = ProcessorInf.GetName(),
+                ProcessorCount = Environment.ProcessorCount,
+                PerfOS = perfOS
+
             };
 
             SysInfo sysInf = new SysInfo
