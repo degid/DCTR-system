@@ -27,11 +27,11 @@ namespace DCTR_Cliest
     struct PerfOS
     {
         public string Name { get; set; }
-        public string InterruptsPersec { get; set; }
-        public string PercentIdleTime { get; set; }
-        public string PercentPrivilegedTime { get; set; }
-        public string PercentProcessorTime { get; set; }
-        public string PercentUserTime { get; set; }
+        public int InterruptsPersec { get; set; }
+        public int PercentIdleTime { get; set; }
+        public int PercentPrivilegedTime { get; set; }
+        public int PercentProcessorTime { get; set; }
+        public int PercentUserTime { get; set; }
     }
 
     struct ProcessorInfo
@@ -250,11 +250,11 @@ namespace DCTR_Cliest
                 perfOS.Add( new PerfOS
                 {
                     Name = dic["Name"],
-                    InterruptsPersec = dic["InterruptsPersec"],
-                    PercentIdleTime = dic["PercentIdleTime"],
-                    PercentPrivilegedTime = dic["PercentPrivilegedTime"],
-                    PercentProcessorTime = dic["PercentProcessorTime"],
-                    PercentUserTime = dic["PercentUserTime"]
+                    InterruptsPersec = Int32.Parse(dic["InterruptsPersec"]),
+                    PercentIdleTime = Int32.Parse(dic["PercentIdleTime"]),
+                    PercentPrivilegedTime = Int32.Parse(dic["PercentPrivilegedTime"]),
+                    PercentProcessorTime = Int32.Parse(dic["PercentProcessorTime"]),
+                    PercentUserTime = Int32.Parse(dic["PercentUserTime"])
                 });
             }
 
