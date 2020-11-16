@@ -12,7 +12,48 @@ import (
 	"time"
 )
 
-var paramToken map[string]string
+// InitGoogleDisk checks the readiness of google drive
+// and provides an authorization process
+type InitGoogleDisk struct {
+	status  bool
+	code    string
+	authURL string
+}
+
+func (disk *InitGoogleDisk) getStatus() bool {
+	return disk.status
+}
+
+func (disk *InitGoogleDisk) setStatus(status bool) {
+	disk.status = status
+}
+
+func (disk *InitGoogleDisk) setCode(code string) {
+	disk.code = code
+}
+
+func (disk *InitGoogleDisk) getCode() string {
+	return disk.code
+}
+
+func (disk *InitGoogleDisk) isCodeEmpty() (rez bool) {
+	if disk.getCode() == "" {
+		rez = true
+	} else {
+		rez = false
+	}
+	return
+}
+
+func (disk *InitGoogleDisk) setURL(url string) {
+	disk.authURL = url
+}
+
+func (disk *InitGoogleDisk) getURL() string {
+	return disk.authURL
+}
+
+var initDisk InitGoogleDisk
 
 // healthz is a liveness probe.
 func healthz(w http.ResponseWriter, _ *http.Request) {
@@ -38,13 +79,11 @@ func indexHandler(w http.ResponseWriter, r *http.Request) {
 		log.Fatalf("%s: %v", w, err.Error())
 	}
 
-	if value, inMap := paramToken["ok"]; !inMap {
-		http.Redirect(w, r, "/waitservice", 302)
-	} else if value == "0" {
+	if initDisk.getStatus() == false {
 		http.Redirect(w, r, "/gettoken", 302)
 	}
 
-	err = t.ExecuteTemplate(w, "index", paramToken["ok"])
+	err = t.ExecuteTemplate(w, "index", initDisk.getStatus())
 	if err != nil {
 		log.Fatalf("%s: %v", w, err.Error())
 	}
@@ -53,7 +92,7 @@ func indexHandler(w http.ResponseWriter, r *http.Request) {
 func saveCodeHandler(w http.ResponseWriter, r *http.Request) {
 	code := r.FormValue("inputcode")
 	if code != "" {
-		paramToken["code"] = code
+		initDisk.setCode(code)
 		http.Redirect(w, r, "/waitservice?code=1", 302)
 	} else {
 		http.Redirect(w, r, "/gettoken", 302)
@@ -68,7 +107,7 @@ func getCodeHandler(w http.ResponseWriter, r *http.Request) {
 		log.Fatalf("%s: %v", w, err.Error())
 	}
 
-	err = t.ExecuteTemplate(w, "setparam", paramToken["authURL"])
+	err = t.ExecuteTemplate(w, "setparam", initDisk.getURL())
 	if err != nil {
 		log.Fatalf("%s: %v", w, err.Error())
 	}
@@ -83,7 +122,7 @@ func waitServiceHandler(w http.ResponseWriter, r *http.Request) {
 
 	okcode := r.FormValue("code")
 
-	if value, inMap := paramToken["ok"]; inMap && okcode == "" || value == "1" {
+	if okcode == "" || initDisk.getStatus() {
 		http.Redirect(w, r, "/", 302)
 	}
 
@@ -94,22 +133,21 @@ func waitServiceHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func chekCode(param *<-chan bool, AuthURL *<-chan string, AuthCode *chan<- string) {
-	paramToken = make(map[string]string)
 	if <-*param != true {
-		paramToken["ok"] = "0"
-		paramToken["authURL"] = <-*AuthURL
+		initDisk.setStatus(false)
+		initDisk.setURL(<-*AuthURL)
 
-		for paramToken["code"] == "" {
+		for initDisk.isCodeEmpty() {
 			time.Sleep(2 * time.Millisecond)
 		}
 
-		*AuthCode <- paramToken["code"]
+		*AuthCode <- initDisk.getCode()
 
 		if <-*param {
 			log.Println("Web get response!")
 		}
 	}
-	paramToken["ok"] = "1"
+	initDisk.setStatus(true)
 }
 
 // Start - Start web service interface

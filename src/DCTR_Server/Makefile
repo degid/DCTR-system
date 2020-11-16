@@ -2,7 +2,7 @@ APP?=dctrserver
 PORT?=8001
 APPPATH?=/mnt/f/GitHub/DCTR-system/src/DCTR_Server
 
-RELEASE?=0.0.1
+RELEASE?=0.0.3
 DOCKLOGIN?=ryutensai
 CONTAINER_IMAGE?=docker.io/${DOCKLOGIN}/${APP}
 
@@ -17,6 +17,9 @@ build: clean
 
 container: build
 	docker build -t $(CONTAINER_IMAGE):$(RELEASE) .
+
+server:
+	PORT=${PORT} go run main.go
 
 run: container
 	docker stop $(APP):$(RELEASE) || true && docker rm $(APP):$(RELEASE) || true
