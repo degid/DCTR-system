@@ -228,18 +228,22 @@ namespace DCTR_Cliest
             List<disk> drives = new List<disk>();
             foreach (var drive in DriveInfo.GetDrives())
             {
-                if (drive.DriveType == DriveType.Fixed  || drive.DriveType == DriveType.Removable)
-                drives.Add(new disk()
+                if (drive.DriveType == DriveType.Fixed || drive.DriveType == DriveType.Removable)
                 {
-                    Name = drive.Name,
-                    DriveFormat = drive.DriveFormat,
-                    DiskType = drive.DriveType,
-                    AvailableFreeSpace = drive.AvailableFreeSpace,
-                    IsReady = drive.IsReady,
-                    TotalFreeSpace = drive.TotalFreeSpace,
-                    TotalSize = drive.TotalSize,
-                    VolumeLabel = drive.VolumeLabel
-                });
+                    disk driv = new disk();
+                    driv.Name = drive.Name;
+                    driv.DiskType = drive.DriveType;
+                    driv.IsReady = drive.IsReady;
+                    if (drive.IsReady)
+                    {
+                        driv.DriveFormat = drive.DriveFormat;
+                        driv.AvailableFreeSpace = drive.AvailableFreeSpace;
+                        driv.TotalFreeSpace = drive.TotalFreeSpace;
+                        driv.TotalSize = drive.TotalSize;
+                        driv.VolumeLabel = drive.VolumeLabel;
+                    }
+                    drives.Add(driv);
+                }
             }
             OperatingSystem os = Environment.OSVersion;
 

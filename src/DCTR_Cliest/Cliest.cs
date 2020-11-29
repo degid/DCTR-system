@@ -82,7 +82,6 @@ namespace DCTR_Cliest
             // Update the service state to Running.
             serviceStatus.dwCurrentState = ServiceState.SERVICE_RUNNING;
             SetServiceStatus(this.ServiceHandle, ref serviceStatus);
-            PerformanceCounter ramCounter = new PerformanceCounter("Memory", "Available MBytes");
             Logger.InitLogger();
             Logger.Log.Info("Start");
         }
@@ -107,8 +106,15 @@ namespace DCTR_Cliest
         private void FirstPack()
         {
             SavePackage pack = new SavePackage();
-            pack.SaveAll();
-            new Cliest().RunSendData().Wait();
+            try
+            {
+                pack.SaveAll();
+                new Cliest().RunSendData().Wait();
+            }
+            catch (Exception ex)
+            {
+                eventLog.WriteEntry(ex.Message, EventLogEntryType.Error, 660);
+            }
         }
 
         public void GetDataSysOnTimer(object sender, ElapsedEventArgs args)
